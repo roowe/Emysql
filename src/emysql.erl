@@ -746,12 +746,22 @@ as_record(Res, Recname, Fields, Fun) -> emysql_conv:as_record(Res, Recname, Fiel
 %% @end doc: hd feb 11
 %%
 monitor_work(Connection0, Timeout, Args) when is_record(Connection0, emysql_connection) ->
-    Connection = case emysql_conn:need_test_connection(Connection0) of
-       true ->
-          emysql_conn:test_connection(Connection0, keep);
-       false ->
-          Connection0
-    end,
+    Connection = if
+                     Connection0#emysql_connection.alive =:= false ->
+                         case emysql_conn:reset_connection(emysql_conn_mgr:pools(), Connection0, keep) of
+                             NewConn when is_record(NewConn, emysql_connection) ->
+                                 NewConn;
+                             {error, FailedReset0} ->
+                                 exit({connection_down, {and_conn_reset_failed, FailedReset0}})
+                         end;
+                     true ->
+                         case emysql_conn:need_test_connection(Connection0) of
+                             true ->
+                                 emysql_conn:test_connection(Connection0, keep);
+                             false ->
+                                 Connection0
+                         end
+                 end,
 
     %% spawn a new process to do work, then monitor that process until
     %% it either dies, returns data or times out.
