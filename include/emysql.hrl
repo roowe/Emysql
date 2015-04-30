@@ -38,7 +38,7 @@
 	       locked=gb_trees:empty() :: gb_tree(), 
 	       waiting=queue:new() :: queue(), 
 	       start_cmds=[] :: string(), 
-	       conn_test_period=0 :: number(), 
+	       conn_test_period=emysql_app:conn_test_period() :: number(),
 	       connect_timeout=infinity :: number() | infinity,
 	       warnings=false :: boolean()}).
 
