@@ -40,7 +40,7 @@
 
 -include("emysql.hrl").
 
--record(state, {pools, lockers = dict:new() :: dict()}).
+-record(state, {pools, lockers = dict:new() :: dict:dict()}).
 
 %%====================================================================
 %% API
@@ -419,8 +419,16 @@ lock_next_connection(Available ,Locked, Who) ->
     end.
 
 connection_locked_at(Conn, MonitorRef) ->
-	Conn#emysql_connection{locked_at=lists:nth(2, tuple_to_list(now())),
-			       monitor_ref = MonitorRef}.
+		Conn#emysql_connection{
+		  locked_at = case catch erlang:unique_integer() of
+							  {'EXIT', _} ->
+									  lists:nth(2, tuple_to_list(apply(erlang, now, [])));
+							  V ->
+									  V
+					  end,
+		  monitor_ref = MonitorRef
+		 }.
+   
 
 serve_waiting_pids(Pool) ->
     {Waiting, Available, Locked, NewRefs} = serve_waiting_pids(Pool#pool.waiting, Pool#pool.available, Pool#pool.locked, []),
